@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Check storage availability
+        function verifyStorage() {
+            try {
+                const test = '__storage_test__';
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch (e) {
+                console.error('Storage access error:', e);
+                alert('This browser does not support required storage features. Please use a modern browser.');
+                return false;
+            }
+        }
+
+        // Initialize on page load
+        if (verifyStorage()) {
+            checkAuthState();
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Lost & Found Tracker - Welcome, ${localStorage.getItem('userName')}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            background-image: url('static/uploads/pexels-jplenio-1103970.jpg'); /* Updated for total website */
+            background-size: cover; /* Ensures the image covers the entire background */
+            background-position: center; /* Centers the image */
+            overflow-y: scroll; /* Enables vertical scrolling */
+        }
+
+        html {
+            scroll-behavior: smooth; /* Smooth scrolling */
+        }
+
+        @keyframes popOut {
+            from { transform: scale(1); opacity: 0; }
+            to { transform: scale(1.1); opacity: 1; } /* Pop-out effect */
+        }
+        
+        header {
+            animation: fadeIn 2s ease-in; /* Applies the fade-in effect */
+        }
+
+        .button:hover {
+            transform: scale(1.05); /* Slightly enlarges the button */
+            transition: transform 0.2s; /* Smooth transition */
+        }
+
+        header {
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+        nav {
+            background-color: #333;
+            padding: 1rem;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+        nav a:hover {
+            color: #007BFF;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .section {
+            background-color: rgba(255, 255, 255, 0.312);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease-out forwards;
+            animation-delay: calc(var(--section-order) * 0.1s);
+        }
+        .button {
+            background: linear-gradient(135deg, #007BFF, #0056b3);
+            color: white;
+            padding: 12px 24px; /* Increased padding */
+            border: none;
+            border-radius: 8px; /* Slightly increased border-radius */
+            cursor: pointer;
+            font-size: 16px; /* Increased font size */
+            transition: background 0.3s ease, transform 0.2s ease; /* Added transition */
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3); /* Enhanced box shadow */
+            position: relative; /* For layering */
+            overflow: hidden; /* To contain the pseudo-element */
+        }
+
+        .button:hover {
+            background: linear-gradient(135deg, #0056b3, #004494); /* Darker gradient on hover */
+            transform: translateY(-2px); /* Slight lift effect on hover */
+        }
+
+        #item-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .item-card {
+            background-color: #94c39415;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 180px;
+            margin: 8px;
+            padding: 8px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 2s ease-in forwards;
+            animation-delay: calc(var(--i) * 0.1s);
+        }
+
+        .item-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .item-card p {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-size: 0.9rem;
+            margin: 4px 0;
+        }
+footer {
+            text-align: center;
+            padding: 1rem;
+            background-color: transparent; /* Set footer to transparent */
+            color: white; /* Ensure text remains readable */
+            position: right;
+            bottom: 0;
+            width: 100%;
+        }
+        #location-status {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .parallax {
+            background-image: url('static/uploads/pexels-jplenio-1103970.jpg');
+            height: 100vh; /* Full height */
+            background-attachment: fixed; /* Parallax effect */
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        h1 {
+            font-size: 2.5rem; /* Increased size for main header */
+        }
+        h2 {
+            font-family: 'Arial', sans-serif; /* Changed to Arial font */
+            font-size: 2.5rem; /* Increased size */
+            color: black; /* Changed color to black */
+            text-shadow: none; /* Removed text shadow */
+            letter-spacing: 1px; /* Increased letter spacing */
+            text-transform: none; /* Normal case */
+        }
+        p {
+            font-size: 1.2rem; /* Increased size for paragraphs */
+        }
+    </style>
+</head>
+<body>
+    <!-- Login/Signup Container (shown when not logged in) -->
+    <div id="auth-container" class="login-container" style="display: none;">
+        <div id="login-form">
+            <h1>AI Lost & Found Tracker</h1>
+            <h2>Login</h2>
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" required>
+                <span class="toggle-password" onclick="togglePassword('login-password')">👁️</span>
+            </div>
+            <button onclick="login()">Login</button>
+            <div class="switch-form">
+                Don't have an account? <a href="#" onclick="showSignup()">Sign up</a>
+            </div>
+            <div id="login-error" class="error"></div>
+        </div>
+
+        <div id="signup-form" style="display: none;">
+            <h1>AI Lost & Found Tracker</h1>
+            <h2>Sign Up</h2>
+            <div class="form-group">
+                <label for="signup-name">Full Name</label>
+                <input type="text" id="signup-name" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" required>
+                <span class="toggle-password" onclick="togglePassword('signup-password')">👁️</span>
+            </div>
+            <div class="form-group">
+                <label for="signup-confirm">Confirm Password</label>
+                <input type="password" id="signup-confirm" required>
+                <span class="toggle-password" onclick="togglePassword('signup-confirm')">👁️</span>
+            </div>
+            <button onclick="signup()">Create Account</button>
+            <div class="switch-form">
+                Already have an account? <a href="#" onclick="showLogin()">Login</a>
+            </div>
+            <div id="signup-error" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Main App Content (shown when logged in) -->
+    <div id="app-content" style="display: none;">
+        <header class="parallax">    
+            <h1>AI-Powered Lost & Found Tracker</h1>
+            <p>Find your lost items with image recognition and community support</p>
+            <img src="static/uploads/webimg-removebg-preview.png" alt="New Web Image" style="max-width: 200%; height: 70%; margin-top: 20px;">
+        </header>
+
+        <nav>
+            <a href="#home">Home</a>
+            <a href="#upload">Upload Item</a>
+            <a href="#search">Search Lost Items</a>
+            <a href="#community">Community</a>
+            <a href="#about">About</a>
+            <a href="#" onclick="logout()" style="float: right;">Logout</a>
+        </nav>
+
+    <div class="container">
+        <div class="section" id="home">
+            <h2>Welcome</h2>
+            <p>Lost something?<p>
+                <p> Let our AI-powered tracker help you recover it. Upload an image, and our system will match it with found items reported by our community.</p>
+            <button class="button" onclick="scrollToSection('upload')">Get Started</button>
+        </div>
+
+        <div class="section" id="upload">
+            <h2>Upload Lost or Found Item</h2>
+            <p>Upload an image of the item you’ve lost or found. Our AI will analyze it (simulated here).</p>
+            <input type="file" id="item-image" accept="image/*">
+            <p id="recognition-result" style="font-style: italic; color: #333; margin-top: 5px;"></p>
+            <input type="text" id="item-description" placeholder="Description (e.g., 'Blue wallet')">
+            <select id="item-type">
+                <option value="lost">Lost</option>
+                <option value="found">Found</option>
+            </select>
+            <h3>Contact Information</h3>
+            <input type="text" id="contact-name" placeholder="Your Name">
+            <input type="text" id="contact-phone" placeholder="Your Phone Number">
+            <input type="email" id="contact-email" placeholder="Your Email">
+            <button class="button" id="upload-button" onclick="uploadItem()" disabled>Submit</button>
+            <p id="location-status">Location will be automatically added if available.</p>
+        </div>
+
+        <div class="section" id="search">
+            <h2>Search Lost Items</h2>
+            <p>Browse or search reported items. Filter by description (simulated AI match).</p>
+            <input type="text" id="search-query" placeholder="Search items...">
+            <button class="button" onclick="searchItems()">Search</button>
+            <div id="item-list"></div>
+        </div>
+
+        <div class="section" id="community">
+            <h2>Community-Based Recovery</h2>
+            <p>Join a network of helpful individuals. Report found items and connect with others.</p>
+            <div id="community-posts">
+                <h3>Create Post</h3>
+                <textarea id="post-content" placeholder="Share updates with the community..."></textarea>
+                <button class="button" onclick="createPost()">Post</button>
+                
+                <h3>Community Feed</h3>
+                <button class="button" onclick="deleteCommunityPosts()">Delete All Community Posts</button>
+                <div id="posts-container"></div>
+            </div>
+        </div>
+
+        <div class="section" id="about">
+            <h2>About Us</h2>
+            <p>We use advanced AI image recognition to revolutionize lost and found services, powered by a supportive community.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 AI Lost & Found Tracker. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Logout function
+        function logout() {
+            localStorage.removeItem('loggedIn');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize IndexedDB with community features
+        let db;
+        const request = indexedDB.open('LostAndFoundDB', 2);
+
+        request.onerror = function(event) {
+            console.error('Database error:', event.target.error);
+        };
+
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            
+            // Items store (existing)
+            if (!db.objectStoreNames.contains('items')) {
+                const itemsStore = db.createObjectStore('items', { keyPath: 'id' });
+                itemsStore.createIndex('description', 'description', { unique: false });
+                itemsStore.createIndex('type', 'type', { unique: false });
+            }
+
+            // Community posts store (new)
+            if (!db.objectStoreNames.contains('communityPosts')) {
+                const postsStore = db.createObjectStore('communityPosts', { keyPath: 'id' });
+                postsStore.createIndex('userId', 'userId', { unique: false });
+                postsStore.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+
+            // User profiles store (new)
+            if (!db.objectStoreNames.contains('userProfiles')) {
+                const profilesStore = db.createObjectStore('userProfiles', { keyPath: 'userId' });
+                profilesStore.createIndex('name', 'name', { unique: false });
+            }
+        };
+
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            displayItems();
+            loadCommunityPosts();
+        };
+
+        // Scroll to section function with pop-out effect
+        window.addEventListener('scroll', () => {
+            const itemCards = document.querySelectorAll('.item-card');
+            itemCards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                if (rect.top < window.innerHeight && rect.bottom >= 0) {
+                    card.style.animation = 'popOut 0.5s forwards'; // Apply pop-out animation
+                }
+            });
+        });
+
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Upload item function with geolocation and contact details
+        async function uploadItem() {
+            const fileInput = document.getElementById('item-image');
+            const description = document.getElementById('item-description').value.trim();
+            const type = document.getElementById('item-type').value;
+            const locationStatus = document.getElementById('location-status');
+
+            if (fileInput.files.length === 0 || description === '') {
+                alert('Please upload an image and provide a description.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            locationStatus.textContent = "Fetching your location... Please wait.";
+
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    } else {
+                        reject(new Error('Geolocation not supported'));
+                    }
+                });
+
+                const { latitude, longitude } = position.coords;
+                
+                reader.onload = function(e) {
+                    const transaction = db.transaction(['items'], 'readwrite');
+                    const objectStore = transaction.objectStore('items');
+                    
+                    const item = {
+                        id: Date.now(),
+                        image: e.target.result,
+                        description: description,
+                        type: type,
+                        date: new Date().toLocaleDateString(),
+                        location: { lat: latitude, lng: longitude },
+                        contact: {
+                            name: document.getElementById('contact-name').value.trim(),
+                            phone: document.getElementById('contact-phone').value.trim(),
+                            email: document.getElementById('contact-email').value.trim()
+                        }
+                    };
+
+                    const request = objectStore.add(item);
+
+                    request.onsuccess = function() {
+                        document.getElementById('location-status').textContent = 
+                            `Item ${type} uploaded successfully with location! Contact details: ${item.contact.name}, ${item.contact.phone}, ${item.contact.email}`;
+                        displayItems();
+                        clearUploadForm();
+                    };
+
+                    request.onerror = function(event) {
+                        console.error('Error adding item:', event.target.error);
+                        locationStatus.textContent = "Error saving item. Please try again.";
+                    };
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                console.log("Geolocation error:", error);
+                reader.onload = function(e) {
+                    const transaction = db.transaction(['items'], 'readwrite');
+                    const objectStore = transaction.objectStore('items');
+                    
+                    const item = {
+                        id: Date.now(),
+                        image: e.target.result,
+                        description: description,
+                        type: type,
+                        date: new Date().toLocaleDateString(),
+                        location: null,
+                        contact: {
+                            name: document.getElementById('contact-name').value.trim(),
+                            phone: document.getElementById('contact-phone').value.trim(),
+                            email: document.getElementById('contact-email').value.trim()
+                        }
+                    };
+
+                    const request = objectStore.add(item);
+
+                    request.onsuccess = function() {
+                        document.getElementById('location-status').textContent = 
+                            `Item ${type} uploaded successfully (location unavailable). Contact details: ${item.contact.name}, ${item.contact.phone}, ${item.contact.email}`;
+                        displayItems();
+                        clearUploadForm();
+                    };
+
+                    request.onerror = function(event) {
+                        console.error('Error adding item:', event.target.error);
+                        locationStatus.textContent = "Error saving item. Please try again.";
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Clear upload form
+        function clearUploadForm() {
+            document.getElementById('item-image').value = '';
+            document.getElementById('item-description').value = '';
+            document.getElementById('item-type').value = 'lost';
+            document.getElementById('location-status').textContent = "Location will be automatically added if available.";
+        }
+
+        // Display items in the search section with animation
+        function displayItems() {
+            const itemList = document.getElementById('item-list');
+            itemList.innerHTML = '';
+
+            if (!db) {
+                console.error('Database not initialized');
+                return;
+            }
+
+            const transaction = db.transaction(['items'], 'readonly');
+            const objectStore = transaction.objectStore('items');
+            const request = objectStore.getAll();
+
+            request.onsuccess = function(event) {
+                const items = event.target.result;
+                items.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.style.setProperty('--i', index);
+                    card.innerHTML = `
+                        <img src="${item.image}" alt="${item.description}">
+                        <p><strong>${item.description}</strong></p>
+                        <p>Type: ${item.type}</p>
+                        <p>Date: ${item.date}</p>
+                        <p>Contact: ${item.contact.name} (${item.contact.phone}, ${item.contact.email})</p>
+                        <p>Location: ${item.location ?
+                            `<button class="button" onclick="window.open('https://www.google.com/maps?q=${item.location.lat},${item.location.lng}', '_blank')">View Location</button>` : 
+                            'Not available'}</p>
+                    `;
+                    itemList.appendChild(card);
+                });
+            };
+
+            request.onerror = function(event) {
+                console.error('Error retrieving items:', event.target.error);
+            };
+        }
+
+        // Community post creation function
+        function createPost() {
+            const content = document.getElementById('post-content').value.trim();
+            if (!content) {
+                alert('Please enter post content');
+                return;
+            }
+
+            const transaction = db.transaction(['communityPosts'], 'readwrite');
+            const postsStore = transaction.objectStore('communityPosts');
+            
+            const post = {
+                id: Date.now(),
+                userId: localStorage.getItem('userEmail'),
+                userName: localStorage.getItem('userName'),
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+
+            const request = postsStore.add(post);
+
+            request.onsuccess = function() {
+                document.getElementById('post-content').value = '';
+                loadCommunityPosts();
+            };
+
+            request.onerror = function(event) {
+                console.error('Error creating post:', event.target.error);
+                alert('Error creating post. Please try again.');
+            };
+        }
+
+        // Load community posts
+function deleteCommunityPosts() {
+    const transaction = db.transaction(['communityPosts'], 'readwrite');
+    const postsStore = transaction.objectStore('communityPosts');
+    const request = postsStore.clear(); // Clear all posts
+
+    request.onsuccess = function() {
+        console.log('All community posts deleted successfully.');
+        loadCommunityPosts(); // Reload posts to reflect changes
+    };
+
+    request.onerror = function(event) {
+        console.error('Error deleting community posts:', event.target.error);
+    };
+}
+
+function loadCommunityPosts() {
+            const container = document.getElementById('posts-container');
+            container.innerHTML = '';
+
+            if (!db) {
+                console.error('Database not initialized');
+                return;
+            }
+
+            const transaction = db.transaction(['communityPosts'], 'readonly');
+            const postsStore = transaction.objectStore('communityPosts');
+            const request = postsStore.getAll();
+
+            request.onsuccess = function(event) {
+                const posts = event.target.result.sort((a,b) => 
+                    new Date(b.timestamp) - new Date(a.timestamp));
+                
+                posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.className = 'item-card';
+                    postElement.innerHTML = `
+                        <p><strong>${post.userName}</strong></p>
+                        <p>${post.content}</p>
+                        <small>${new Date(post.timestamp).toLocaleString()}</small>
+                    `;
+                    container.appendChild(postElement);
+                });
+            };
+
+            request.onerror = function(event) {
+                console.error('Error loading posts:', event.target.error);
+            };
+        }
+
+        // Auth state management
+        function checkAuthState() {
+            if (localStorage.getItem('loggedIn')) {
+                document.getElementById('auth-container').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                document.title = `AI Lost & Found Tracker - Welcome, ${localStorage.getItem('userName')}`;
+            } else {
+                document.getElementById('auth-container').style.display = 'block';
+                document.getElementById('app-content').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('signup-form').style.display = 'none';
+            }
+        }
+
+        // Initialize auth state on page load
+        checkAuthState();
+
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const toggle = field.nextElementSibling;
+            if (field.type === 'password') {
+                field.type = 'text';
+                toggle.textContent = '👁️';
+                toggle.style.textDecoration = 'line-through';
+            } else {
+                field.type = 'password';
+                toggle.textContent = '👁️';
+                toggle.style.textDecoration = 'none';
+            }
+        }
+
+        // Login function
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorElement = document.getElementById('login-error');
+            const loginBtn = document.querySelector('#login-form button');
+
+            if (!email || !password) {
+                errorElement.textContent = 'Please fill in all fields';
+                return;
+            }
+
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            try {
+                const transaction = db.transaction(['userProfiles'], 'readonly');
+                const objectStore = transaction.objectStore('userProfiles');
+                const request = objectStore.get(email);
+
+                request.onsuccess = function(event) {
+                    const user = event.target.result;
+                    if (user && user.password === password) {
+                        localStorage.setItem('loggedIn', 'true');
+                        localStorage.setItem('userEmail', email);
+                        localStorage.setItem('userName', user.name);
+                        checkAuthState();
+                    } else {
+                        errorElement.textContent = 'Invalid email or password';
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Login';
+                    }
+                };
+
+                request.onerror = function(event) {
+                    console.error('Login error:', event.target.error);
+                    errorElement.textContent = 'Error logging in. Please try again.';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
+                };
+            } catch (e) {
+                console.error('Login exception:', e);
+                errorElement.textContent = 'Login failed. Please refresh and try again.';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        }
+
+        // Signup function
+        function signup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const errorElement = document.getElementById('signup-error');
+
+            if (!name || !email || !password || !confirm) {
+                errorElement.textContent = 'Please fill in all fields';
+                return;
+            }
+
+            if (password !== confirm) {
+                errorElement.textContent = 'Passwords do not match';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorElement.textContent = 'Password must be at least 6 characters';
+                return;
+            }
+
+            const transaction = db.transaction(['userProfiles'], 'readwrite');
+            const objectStore = transaction.objectStore('userProfiles');
+            const request = objectStore.add({
+                userId: email,
+                name: name,
+                password: password
+            });
+
+            request.onsuccess = function() {
+                localStorage.setItem('loggedIn', 'true');
+                localStorage.setItem('userEmail', email);
+                localStorage.setItem('userName', name);
+                checkAuthState();
+            };
+
+            request.onerror = function(event) {
+                if (event.target.error.name === 'ConstraintError') {
+                    errorElement.textContent = 'Email already registered';
+                } else {
+                    errorElement.textContent = 'Error creating account';
+                }
+            };
+        }
+
+        // Search items function (simulated AI match)
+        function searchItems() {
+            const query = document.getElementById('search-query').value.toLowerCase();
+            if (!query) {
+                displayItems(); // Show all items if no query
+                return;
+            }
+
+            const transaction = db.transaction(['items'], 'readonly');
+            const objectStore = transaction.objectStore('items');
+            const request = objectStore.getAll();
+
+            request.onsuccess = function(event) {
+                const items = event.target.result;
+                const filteredItems = items.filter(item => 
+                    item.description.toLowerCase().includes(query)
+                );
+                
+                const itemList = document.getElementById('item-list');
+                itemList.innerHTML = '';
+                
+                filteredItems.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.style.setProperty('--i', index);
+                    card.innerHTML = `
+                        <img src="${item.image}" alt="${item.description}">
+                        <p><strong>${item.description}</strong></p>
+                        <p>Type: ${item.type}</p>
+                        <p>Date: ${item.date}</p>
+                        <p>Contact: ${item.contact.name} (${item.contact.phone}, ${item.contact.email})</p>
+                        <p>Location: ${item.location ?
+                            `<button class="button" onclick="window.open('https://www.google.com/maps?q=${item.location.lat},${item.location.lng}', '_blank')">View Location</button>` : 
+                            'Not available'}</p>
+                    `;
+                    itemList.appendChild(card);
+                });
+            };
+
+            request.onerror = function(event) {
+                console.error('Error searching items:', event.target.error);
+            };
+        }
+
+        // Delete item function
+        function deleteItem(id) {
+            if (!db) {
+                console.error('Database not initialized');
+                return;
+            }
+            const transaction = db.transaction(['items'], 'readwrite');
+            const objectStore = transaction.objectStore('items');
+            const request = objectStore.delete(id);
+
+            request.onsuccess = function() {
+                console.log(`Item with id ${id} deleted.`);
+                displayItems();
+            };
+
+            request.onerror = function(event) {
+                console.error('Error deleting item:', event.target.error);
+            };
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+    <script>
+        let mobilenetModel;
+        let isModelLoaded = false;
+
+        async function loadModel() {
+            try {
+                mobilenetModel = await mobilenet.load();
+                isModelLoaded = true;
+                console.log('MobileNet model loaded');
+                // Enable upload button after model loads
+                const uploadBtn = document.getElementById('upload-button');
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error loading MobileNet model:', error);
+                alert('Failed to load image recognition model. Please refresh the page.');
+            }
+        }
+
+        // Call loadModel on page load
+        loadModel();
+
+        async function recognizeImage(file) {
+            if (!isModelLoaded) {
+                console.error('Model not loaded yet');
+                return [];
+            }
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = async () => {
+                    try {
+                        const predictions = await mobilenetModel.classify(img);
+                        console.log('Predictions:', predictions);
+                        resolve(predictions);
+                    } catch (err) {
+                        console.error('Error during classification:', err);
+                        reject(err);
+                    }
+                };
+                img.onerror = (err) => {
+                    console.error('Image load error:', err);
+                    reject(err);
+                };
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // Function to recognize selected image and update UI
+        async function recognizeSelectedImage() {
+            const fileInput = document.getElementById('item-image');
+            const recognitionResult = document.getElementById('recognition-result');
+            recognitionResult.textContent = 'Recognizing image...';
+
+            if (fileInput.files.length === 0) {
+                recognitionResult.textContent = '';
+                return;
+            }
+
+            if (!isModelLoaded) {
+                recognitionResult.textContent = 'Image recognition model is still loading. Please wait.';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            try {
+                const predictions = await recognizeImage(file);
+                if (predictions.length > 0) {
+                    // Filter predictions above 50% confidence and sort descending
+                    const filtered = predictions.filter(p => p.probability >= 0.3)
+                                                .sort((a, b) => b.probability - a.probability);
+                    if (filtered.length > 0) {
+                        const labels = filtered.map(p => `${p.className} (${(p.probability * 100).toFixed(1)}%)`).join(', ');
+                        recognitionResult.textContent = `Recognition: ${labels}`;
+                    } else {
+                        recognitionResult.textContent = 'No high-confidence recognizable objects found.';
+                    }
+                } else {
+                    recognitionResult.textContent = 'No recognizable objects found.';
+                }
+            } catch (error) {
+                console.error('Image recognition error:', error);
+                recognitionResult.textContent = 'Error recognizing image.';
+            }
+        }
+
+        // Modify uploadItem to include image recognition before upload
+        const originalUploadItem = uploadItem;
+        uploadItem = async function() {
+            await recognizeSelectedImage();
+            await originalUploadItem();
+        };
+
+        // Add event listener to recognize image immediately after file selection
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('item-image');
+            if (fileInput) {
+                fileInput.addEventListener('change', () => {
+                    recognizeSelectedImage();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
